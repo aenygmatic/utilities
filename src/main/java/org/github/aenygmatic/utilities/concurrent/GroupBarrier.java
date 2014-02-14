@@ -24,106 +24,174 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * Barrier object which organized threads to groups and allows only one thread
  * to run of the same group.
- *
- * @param <T> the type of the object which is used for grouping threads
- * ({@link Object#equals(Object)} is used).
- *
+ * <p>
  * @author Balazs Berkes
  */
-public class GroupBarrier<T> {
+public class GroupBarrier {
 
-    private final Map<T, ReentrantLock> groupLocks = new HashMap<>();
-    private final Map<T, Integer> groupMemberCount = new HashMap<>();
-
-    private final int timeout;
-    private final TimeUnit timeUnit;
-
-    public GroupBarrier() {
-        this(60, TimeUnit.SECONDS);
+    public static <T> GroupLock<T> newGroupLock() {
+        return new DoubleMappingGroupLock<>(GroupLock.DEFAULT_TIMEOUT, GroupLock.DEFAULT_TIME_UNIT);
     }
 
-    public GroupBarrier(int timeout) {
-        this(timeout, TimeUnit.SECONDS);
-    }
+    public static class DoubleMappingGroupLock<T> implements GroupLock<T> {
 
-    public GroupBarrier(int timeout, TimeUnit timeUnit) {
-        this.timeout = timeout;
-        this.timeUnit = timeUnit;
-    }
+        private final Map<T, ReentrantLock> groupLocks = new HashMap<>();
+        private final Map<T, Integer> groupMemberCount = new HashMap<>();
 
-    /**
-     * Locks the current group in the barrier and await the lock to be released
-     * when it's held by and other thread in with the same group id.
-     *
-     * @param groupId object which is used for grouping threads. This key will
-     * identify which group the thread should queue up to.
-     * @return {@code true} if the thread could get the lock in the default
-     * timeout, otherwise {@code false}
-     */
-    public boolean tryAndAwaitGroup(T groupId) {
-        Lock lock = getLock(groupId);
-        return interruptableWait(lock);
-    }
+        private final int timeout;
+        private final TimeUnit timeUnit;
 
-    /**
-     * Unlocks the current group allowing to the queued threads to execute. When
-     * no other thread in in the current group the barrier for that group will
-     * be cleaned up.
-     *
-     * @param groupId object which is used for grouping threads. This key will
-     * identify which group the thread should queue up to.
-     */
-    public synchronized void unlockGroup(T groupId) {
-        ReentrantLock lock;
-        lock = groupLocks.get(groupId);
-        if (lock.isHeldByCurrentThread()) {
-            lock.unlock();
+        public DoubleMappingGroupLock() {
+            this(DEFAULT_TIMEOUT, DEFAULT_TIME_UNIT);
         }
-        cleanUpIfNoThreadsAreWaiting(groupId);
-    }
 
-    private synchronized Lock getLock(T groupIdentifier) {
-        incrementGroupMembers(groupIdentifier);
-        return receiveLock(groupIdentifier);
-    }
-
-    private boolean interruptableWait(Lock lock) {
-        boolean available = false;
-        try {
-            available = lock.tryLock(timeout, timeUnit);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+        public DoubleMappingGroupLock(int timeout) {
+            this(timeout, DEFAULT_TIME_UNIT);
         }
-        return available;
-    }
 
-    private Lock receiveLock(T groupId) {
-        ReentrantLock lock = groupLocks.get(groupId);
-        if (lock == null) {
-            lock = new ReentrantLock();
-            groupLocks.put(groupId, lock);
+        public DoubleMappingGroupLock(int timeout, TimeUnit timeUnit) {
+            this.timeout = timeout;
+            this.timeUnit = timeUnit;
         }
-        return lock;
-    }
 
-    private void incrementGroupMembers(T groupId) {
-        Integer current = groupMemberCount.get(groupId);
-        if (current == null) {
-            current = 1;
-        } else {
-            current++;
+        @Override
+        public boolean tryAndAwaitGroup(T groupId) {
+            Lock lock = getLock(groupId);
+            return interruptableWait(lock);
         }
-        groupMemberCount.put(groupId, current);
+
+        @Override
+        public synchronized void unlockGroup(T groupId) {
+            ReentrantLock lock;
+            lock = groupLocks.get(groupId);
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+            cleanUpIfNoThreadsAreWaiting(groupId);
+        }
+
+        private synchronized Lock getLock(T groupIdentifier) {
+            System.out.println(groupLocks.size());
+            System.out.println(groupMemberCount.size());
+            incrementGroupMembers(groupIdentifier);
+            return receiveLock(groupIdentifier);
+        }
+
+        private boolean interruptableWait(Lock lock) {
+            boolean available = false;
+            try {
+                available = lock.tryLock(timeout, timeUnit);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return available;
+        }
+
+        private Lock receiveLock(T groupId) {
+            ReentrantLock lock = groupLocks.get(groupId);
+            if (lock == null) {
+                lock = new ReentrantLock();
+                groupLocks.put(groupId, lock);
+            }
+            return lock;
+        }
+
+        private void incrementGroupMembers(T groupId) {
+            Integer current = groupMemberCount.get(groupId);
+            if (current == null) {
+                current = 1;
+            } else {
+                current++;
+            }
+            groupMemberCount.put(groupId, current);
+        }
+
+        private void cleanUpIfNoThreadsAreWaiting(T groupIdentifier) {
+            Integer members = groupMemberCount.get(groupIdentifier);
+            members--;
+            if (members == 0) {
+                groupLocks.remove(groupIdentifier);
+                groupMemberCount.remove(groupIdentifier);
+            } else {
+                groupMemberCount.put(groupIdentifier, members);
+            }
+        }
     }
 
-    private void cleanUpIfNoThreadsAreWaiting(T groupIdentifier) {
-        Integer members = groupMemberCount.get(groupIdentifier);
-        members--;
-        if (members == 0) {
-            groupLocks.remove(groupIdentifier);
-            groupMemberCount.remove(groupIdentifier);
-        } else {
-            groupMemberCount.put(groupIdentifier, members);
+    public static class SingleMappingGroupLock<T> implements GroupLock<T> {
+
+        private final Map<T, GroupLock> groupLocks = new HashMap<>();
+
+        private final int timeout;
+        private final TimeUnit timeUnit;
+
+        public SingleMappingGroupLock() {
+            this(DEFAULT_TIMEOUT, DEFAULT_TIME_UNIT);
+        }
+
+        public SingleMappingGroupLock(int timeout) {
+            this(timeout, DEFAULT_TIME_UNIT);
+        }
+
+        public SingleMappingGroupLock(int timeout, TimeUnit timeUnit) {
+            this.timeout = timeout;
+            this.timeUnit = timeUnit;
+        }
+
+        @Override
+        public boolean tryAndAwaitGroup(T groupId) {
+            Lock lock = getLock(groupId);
+            return interruptableWait(lock);
+        }
+
+        @Override
+        public synchronized void unlockGroup(T groupId) {
+            GroupLock groupLock = groupLocks.get(groupId);
+            if (groupLock.lock.isHeldByCurrentThread()) {
+                groupLock.lock.unlock();
+            }
+            cleanUpIfNoThreadsAreWaiting(groupId, groupLock);
+        }
+
+        private synchronized Lock getLock(T groupIdentifier) {
+            System.out.println(groupLocks.size());
+            return receiveLock(groupIdentifier);
+        }
+
+        private boolean interruptableWait(Lock lock) {
+            boolean available = false;
+            try {
+                available = lock.tryLock(timeout, timeUnit);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return available;
+        }
+
+        private Lock receiveLock(T groupId) {
+            GroupLock grouplock = groupLocks.get(groupId);
+            if (grouplock == null) {
+                grouplock = new GroupLock();
+                grouplock.lock = new ReentrantLock();
+                groupLocks.put(groupId, grouplock);
+            } else {
+                grouplock.members++;
+            }
+            return grouplock.lock;
+        }
+
+        private void cleanUpIfNoThreadsAreWaiting(T groupIdentifier, GroupLock groupLock) {
+            groupLock.members--;
+            if (groupLock.members == 0) {
+                groupLocks.remove(groupIdentifier);
+            }
+        }
+
+        private static class GroupLock {
+
+            private ReentrantLock lock;
+            private int members;
+
         }
     }
 }
