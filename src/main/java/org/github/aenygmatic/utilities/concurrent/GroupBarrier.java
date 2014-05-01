@@ -30,10 +30,18 @@ import java.util.concurrent.locks.ReentrantLock;
 public class GroupBarrier {
 
     public static <T> GroupLock<T> newGroupLock() {
-        return new DoubleMappingGroupLock<>(GroupLock.DEFAULT_TIMEOUT, GroupLock.DEFAULT_TIME_UNIT);
+        return newGroupLock(GroupLock.DEFAULT_TIMEOUT, GroupLock.DEFAULT_TIME_UNIT);
     }
 
-    public static class DoubleMappingGroupLock<T> implements GroupLock<T> {
+    public static <T> GroupLock<T> newGroupLock(int timeout) {
+        return newGroupLock(timeout, GroupLock.DEFAULT_TIME_UNIT);
+    }
+
+    public static <T> GroupLock<T> newGroupLock(int timeout, TimeUnit timeUnit) {
+        return new DoubleMappingGroupLock<>(timeout, timeUnit);
+    }
+
+    private static class DoubleMappingGroupLock<T> implements GroupLock<T> {
 
         private final Map<T, ReentrantLock> groupLocks = new HashMap<>();
         private final Map<T, Integer> groupMemberCount = new HashMap<>();
@@ -41,15 +49,15 @@ public class GroupBarrier {
         private final int timeout;
         private final TimeUnit timeUnit;
 
-        public DoubleMappingGroupLock() {
+        private DoubleMappingGroupLock() {
             this(DEFAULT_TIMEOUT, DEFAULT_TIME_UNIT);
         }
 
-        public DoubleMappingGroupLock(int timeout) {
+        private DoubleMappingGroupLock(int timeout) {
             this(timeout, DEFAULT_TIME_UNIT);
         }
 
-        public DoubleMappingGroupLock(int timeout, TimeUnit timeUnit) {
+        private DoubleMappingGroupLock(int timeout, TimeUnit timeUnit) {
             this.timeout = timeout;
             this.timeUnit = timeUnit;
         }
@@ -62,8 +70,7 @@ public class GroupBarrier {
 
         @Override
         public synchronized void unlockGroup(T groupId) {
-            ReentrantLock lock;
-            lock = groupLocks.get(groupId);
+            ReentrantLock lock = groupLocks.get(groupId);
             if (lock.isHeldByCurrentThread()) {
                 lock.unlock();
             }
@@ -71,8 +78,6 @@ public class GroupBarrier {
         }
 
         private synchronized Lock getLock(T groupIdentifier) {
-            System.out.println(groupLocks.size());
-            System.out.println(groupMemberCount.size());
             incrementGroupMembers(groupIdentifier);
             return receiveLock(groupIdentifier);
         }
@@ -118,29 +123,29 @@ public class GroupBarrier {
         }
     }
 
-    public static class SingleMappingGroupLock<T> implements GroupLock<T> {
+    private static class SingleMappingGroupLock<T> implements GroupLock<T> {
 
         private final Map<T, GroupLock> groupLocks = new HashMap<>();
 
         private final int timeout;
         private final TimeUnit timeUnit;
 
-        public SingleMappingGroupLock() {
+        private SingleMappingGroupLock() {
             this(DEFAULT_TIMEOUT, DEFAULT_TIME_UNIT);
         }
 
-        public SingleMappingGroupLock(int timeout) {
+        private SingleMappingGroupLock(int timeout) {
             this(timeout, DEFAULT_TIME_UNIT);
         }
 
-        public SingleMappingGroupLock(int timeout, TimeUnit timeUnit) {
+        private SingleMappingGroupLock(int timeout, TimeUnit timeUnit) {
             this.timeout = timeout;
             this.timeUnit = timeUnit;
         }
 
         @Override
         public boolean tryAndAwaitGroup(T groupId) {
-            Lock lock = getLock(groupId);
+            Lock lock = receiveLock(groupId);
             return interruptableWait(lock);
         }
 
@@ -153,11 +158,6 @@ public class GroupBarrier {
             cleanUpIfNoThreadsAreWaiting(groupId, groupLock);
         }
 
-        private synchronized Lock getLock(T groupIdentifier) {
-            System.out.println(groupLocks.size());
-            return receiveLock(groupIdentifier);
-        }
-
         private boolean interruptableWait(Lock lock) {
             boolean available = false;
             try {
@@ -168,7 +168,7 @@ public class GroupBarrier {
             return available;
         }
 
-        private Lock receiveLock(T groupId) {
+        private synchronized Lock receiveLock(T groupId) {
             GroupLock grouplock = groupLocks.get(groupId);
             if (grouplock == null) {
                 grouplock = new GroupLock();

@@ -15,7 +15,9 @@
  */
 package org.github.aenygmatic.utilities.concurrent;
 
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +38,7 @@ public class GroupBarrierTest {
 
     private BarrierAwareService barrierAwareService;
     private ExecutorService executorService;
+    private List<Callable<Void>> tasks;
 
     @Before
     public void setUp() {
@@ -44,14 +47,24 @@ public class GroupBarrierTest {
 
     @Test
     public void testPerformance() throws InterruptedException {
-        //executorService = Executors.newCachedThreadPool();
-        executorService = Executors.newFixedThreadPool(TOTAL_THREADS);
-        for (Integer group : range(100)) {
-            for (Integer member : range(100)) {
-                executorService.submit(new Caller(barrierAwareService, new Request(group, member)));
+        initThreadPool();
+
+        for (Integer member : range(100)) {
+            for (Integer group : range(100)) {
+                tasks.add(new Caller(barrierAwareService, new Request(group, member)));
             }
         }
 
+        invokeAndWait();
+    }
+
+    private void initThreadPool() {
+        executorService = Executors.newFixedThreadPool(TOTAL_THREADS);
+        tasks = new ArrayList<>(100 * 100);
+    }
+
+    private void invokeAndWait() throws InterruptedException {
+        executorService.invokeAll(tasks);
         executorService.shutdown();
         executorService.awaitTermination(10, TimeUnit.MINUTES);
     }
@@ -69,7 +82,7 @@ public class GroupBarrierTest {
         }
 
         private static void log(String event, int id, int secondId) {
-            //System.out.println(new StringBuilder().append(id).append(":").append(secondId).append(" - ").append(event).toString());
+            System.out.println(new StringBuilder().append(id).append(":").append(secondId).append(" - ").append(event).toString());
         }
     }
 
@@ -84,7 +97,7 @@ public class GroupBarrierTest {
         }
     }
 
-    private static class Caller implements Runnable {
+    private static class Caller implements Callable<Void> {
 
         private BarrierAwareService barrierAwareService;
         private Request request;
@@ -95,20 +108,13 @@ public class GroupBarrierTest {
         }
 
         @Override
-        public void run() {
+        public Void call() {
             try {
                 barrierAwareService.process(request);
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
             }
+            return null;
         }
-    }
-
-    public static void main(String[] args) throws InterruptedException {
-        System.out.println(new Date());
-        GroupBarrierTest test = new GroupBarrierTest();
-        test.setUp();
-        test.testPerformance();
-        System.out.println(new Date());
     }
 }
