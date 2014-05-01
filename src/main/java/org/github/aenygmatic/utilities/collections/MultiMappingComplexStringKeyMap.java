@@ -16,9 +16,13 @@
 package org.github.aenygmatic.utilities.collections;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.github.aenygmatic.utilities.Integers;
 
@@ -36,7 +40,7 @@ public class MultiMappingComplexStringKeyMap<V> implements ComplexKeyMap<String,
 
     public static final String DEFAULT_DELIMITER = ":";
 
-    private List<Map<String, V>> fallback;
+    private final List<Map<String, V>> fallback = new ArrayList<>();
     private String keyDelimiter;
 
     public MultiMappingComplexStringKeyMap() {
@@ -58,13 +62,11 @@ public class MultiMappingComplexStringKeyMap<V> implements ComplexKeyMap<String,
     }
 
     @Override
-    public V get(String key) {
+    public V get(Object key) {
         V element = null;
 
-        String keyFragment = key;
-        for (int keyComplexity = complexityOf(key); keyComplexity >= 0 && element == null; keyComplexity--) {
-            element = getElement(keyComplexity, keyFragment);
-            keyFragment = removeLastFragment(keyFragment);
+        if (key instanceof String) {
+            element = getElement((String) key);
         }
 
         return element;
@@ -80,6 +82,94 @@ public class MultiMappingComplexStringKeyMap<V> implements ComplexKeyMap<String,
         putAllElement(map);
     }
 
+    @Override
+    public int size() {
+        return getAllEntries().size();
+    }
+
+    @Override
+    public boolean isEmpty() {
+        boolean empty = true;
+        for (Map<String, V> m : fallback) {
+            empty &= m.isEmpty();
+        }
+        return empty;
+    }
+
+    @Override
+    public boolean containsKey(Object key) {
+        return getAllKeys().contains(key);
+    }
+
+    @Override
+    public boolean containsValue(Object value) {
+        return getAllValues().contains(value);
+    }
+
+    @Override
+    public V remove(Object key) {
+        V element = null;
+        for (Iterator<Map<String, V>> it = fallback.iterator(); it.hasNext() && element != null;) {
+            Map<String, V> m = it.next();
+            element = m.remove(key);
+        }
+        return element;
+    }
+
+    @Override
+    public void clear() {
+        fallback.clear();
+    }
+
+    @Override
+    public Set<String> keySet() {
+        return getAllKeys();
+    }
+
+    @Override
+    public Collection<V> values() {
+        return getAllValues();
+    }
+
+    @Override
+    public Set<Entry<String, V>> entrySet() {
+        return getAllEntries();
+    }
+
+    private V getElement(String key) {
+        V element = null;
+        String keyFragment = key;
+        for (int keyComplexity = complexityOf(key); keyComplexity >= 0 && element == null; keyComplexity--) {
+            element = getElement(keyComplexity, keyFragment);
+            keyFragment = removeLastFragment(keyFragment);
+        }
+        return element;
+    }
+
+    private Set<Entry<String, V>> getAllEntries() {
+        Set<Entry<String, V>> entries = new HashSet<>();
+        for (Map<String, V> m : fallback) {
+            entries.addAll(m.entrySet());
+        }
+        return entries;
+    }
+
+    private Set<String> getAllKeys() {
+        Set<String> entries = new HashSet<>();
+        for (Map<String, V> m : fallback) {
+            entries.addAll(m.keySet());
+        }
+        return entries;
+    }
+
+    private Set<V> getAllValues() {
+        Set<V> entries = new HashSet<>();
+        for (Map<String, V> m : fallback) {
+            entries.addAll(m.values());
+        }
+        return entries;
+    }
+
     private int complexityOf(String key) {
         return key.split(keyDelimiter).length - 1;
     }
@@ -93,8 +183,6 @@ public class MultiMappingComplexStringKeyMap<V> implements ComplexKeyMap<String,
     }
 
     private void putAllElement(Map<? extends String, ? extends V> map) {
-        fallback = new ArrayList<>();
-
         for (Map.Entry<? extends String, ? extends V> entry : map.entrySet()) {
             putElement(entry.getKey(), entry.getValue());
         }

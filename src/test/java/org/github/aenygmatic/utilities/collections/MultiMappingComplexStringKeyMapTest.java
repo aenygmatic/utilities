@@ -16,6 +16,7 @@
 package org.github.aenygmatic.utilities.collections;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -135,5 +136,17 @@ public class MultiMappingComplexStringKeyMapTest {
         String actual = underTest.get("A-A");
 
         assertEquals("AA-value", actual);
+    }
+
+    @Test
+    public void testContainsKeyWithNonGenericType() {
+        source.put("A", "A-value");
+        source.put("A:A", "AA-value");
+        source.put("B", "B-value");
+        underTest.putAll(source);
+
+        boolean actual = underTest.containsKey(new Object());
+
+        assertFalse(actual);
     }
 }

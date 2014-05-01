@@ -25,19 +25,6 @@ import java.util.Map;
  * @param <K> type of the key
  * @param <V> type of the value
  */
-public interface ComplexKeyMap<K, V> {
+public interface ComplexKeyMap<K, V> extends Map<K, V> {
 
-    /**
-     * Gets the element of the given key. If no element found with the exact key the search continues in the {@code n-1}
-     * level of the hierarchy upto the highest level.
-     * <p>
-     * @param key the complex key
-     * @return the element belongs to the key or its closest association in the key hierarchy. If no element found in
-     * the highest level it returns {@code null}.
-     */
-    V get(K key);
-
-    V put(K key, V value);
-
-    void putAll(Map<? extends K, ? extends V> m);
 }
