@@ -15,12 +15,8 @@
  */
 package org.github.aenygmatic.utilities.collections;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -36,27 +32,27 @@ import org.github.aenygmatic.utilities.Integers;
  * @author Balazs Berkes
  * @param <V> type of the stored element
  */
-public class MultiMappingComplexStringKeyMap<V> implements ComplexKeyMap<String, V> {
+public class ComplexStringKeyMap<V> implements ComplexKeyMap<String, V> {
 
     public static final String DEFAULT_DELIMITER = ":";
 
-    private final List<Map<String, V>> fallback = new ArrayList<>();
+    private final Map<String, V> map = new HashMap<>();
     private String keyDelimiter;
 
-    public MultiMappingComplexStringKeyMap() {
+    public ComplexStringKeyMap() {
         this(DEFAULT_DELIMITER);
     }
 
-    public MultiMappingComplexStringKeyMap(String keyDelimiter) {
+    public ComplexStringKeyMap(String keyDelimiter) {
         this.keyDelimiter = keyDelimiter;
     }
 
-    public MultiMappingComplexStringKeyMap(Map<? extends String, ? extends V> map) {
+    public ComplexStringKeyMap(Map<? extends String, ? extends V> map) {
         this();
         putAllElement(map);
     }
 
-    public MultiMappingComplexStringKeyMap(Map<? extends String, ? extends V> map, String keyDelimiter) {
+    public ComplexStringKeyMap(Map<? extends String, ? extends V> map, String keyDelimiter) {
         this(keyDelimiter);
         putAllElement(map);
     }
@@ -84,98 +80,61 @@ public class MultiMappingComplexStringKeyMap<V> implements ComplexKeyMap<String,
 
     @Override
     public int size() {
-        return getAllEntries().size();
+        return map.size();
     }
 
     @Override
     public boolean isEmpty() {
-        boolean empty = true;
-        for (Map<String, V> m : fallback) {
-            empty &= m.isEmpty();
-        }
-        return empty;
+        return map.isEmpty();
     }
 
     @Override
     public boolean containsKey(Object key) {
-        return getAllKeys().contains(key);
+        return map.containsKey(key);
     }
 
     @Override
     public boolean containsValue(Object value) {
-        return getAllValues().contains(value);
+        return map.containsValue(value);
     }
 
     @Override
     public V remove(Object key) {
-        V element = null;
-        for (Iterator<Map<String, V>> it = fallback.iterator(); it.hasNext() && element != null;) {
-            Map<String, V> m = it.next();
-            element = m.remove(key);
-        }
-        return element;
+        return map.remove(key);
     }
 
     @Override
     public void clear() {
-        fallback.clear();
+        map.clear();
     }
 
     @Override
     public Set<String> keySet() {
-        return getAllKeys();
+        return map.keySet();
     }
 
     @Override
     public Collection<V> values() {
-        return getAllValues();
+        return map.values();
     }
 
     @Override
     public Set<Entry<String, V>> entrySet() {
-        return getAllEntries();
+        return map.entrySet();
     }
 
     private V getElement(String key) {
         V element = null;
         String keyFragment = key;
         for (int keyComplexity = complexityOf(key); keyComplexity >= 0 && element == null; keyComplexity--) {
-            element = getElement(keyComplexity, keyFragment);
+            element = map.get(keyFragment);
             keyFragment = removeLastFragment(keyFragment);
         }
         return element;
     }
 
-    private Set<Entry<String, V>> getAllEntries() {
-        Set<Entry<String, V>> entries = new HashSet<>();
-        for (Map<String, V> m : fallback) {
-            entries.addAll(m.entrySet());
-        }
-        return entries;
-    }
-
-    private Set<String> getAllKeys() {
-        Set<String> entries = new HashSet<>();
-        for (Map<String, V> m : fallback) {
-            entries.addAll(m.keySet());
-        }
-        return entries;
-    }
-
-    private Set<V> getAllValues() {
-        Set<V> entries = new HashSet<>();
-        for (Map<String, V> m : fallback) {
-            entries.addAll(m.values());
-        }
-        return entries;
-    }
-
     private int complexityOf(String key) {
         return key.split(keyDelimiter).length - 1;
-    }
-
-    private V getElement(int complexityLevel, String fragment) {
-        return fallback.size() < complexityLevel + 1 ? null : fallback.get(complexityLevel).get(fragment);
     }
 
     private String removeLastFragment(String fragment) {
@@ -196,12 +155,10 @@ public class MultiMappingComplexStringKeyMap<V> implements ComplexKeyMap<String,
         for (Integer i : Integers.range(keyHierarchy.length)) {
             expandToNext(fragments, i, keyHierarchy[i]);
 
-            Map<String, V> keyCache = getCacheLevel(i);
-
             if (isOverridingLevel(keyHierarchy.length, i)) {
-                previous = keyCache.put(fragments.toString(), value);
-            } else if (isOverridableLevel(fragments.toString(), keyCache)) {
-                previous = keyCache.put(fragments.toString(), value);
+                previous = map.put(fragments.toString(), value);
+            } else if (isOverridableLevel(fragments.toString())) {
+                previous = map.put(fragments.toString(), value);
             }
         }
         return previous;
@@ -211,19 +168,8 @@ public class MultiMappingComplexStringKeyMap<V> implements ComplexKeyMap<String,
         return keyComplexity - 1 == currentLevel;
     }
 
-    private boolean isOverridableLevel(String key, Map<String, V> keyCache) {
-        return !keyCache.containsKey(key);
-    }
-
-    private Map<String, V> getCacheLevel(Integer index) {
-        Map<String, V> keyCache;
-        if (fallback.size() == index) {
-            keyCache = new HashMap<>();
-            fallback.add(keyCache);
-        } else {
-            keyCache = fallback.get(index);
-        }
-        return keyCache;
+    private boolean isOverridableLevel(String key) {
+        return !map.containsKey(key);
     }
 
     private void expandToNext(StringBuilder fragments, Integer keyComplexity, String fragment) {

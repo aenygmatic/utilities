@@ -24,14 +24,14 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 
-public class MultiMappingComplexStringKeyMapTest {
+public class ComplexStringKeyMapTest {
 
     private Map<String, String> source;
-    private MultiMappingComplexStringKeyMap<String> underTest;
+    private ComplexStringKeyMap<String> underTest;
 
     @Before
     public void setUp() {
-        underTest = new MultiMappingComplexStringKeyMap<>();
+        underTest = new ComplexStringKeyMap<>();
         source = new HashMap<>();
     }
 
@@ -104,7 +104,7 @@ public class MultiMappingComplexStringKeyMapTest {
         source.put("A:A", "AA-value");
         source.put("B", "B-value");
         source.put("C", "C-value");
-        underTest = new MultiMappingComplexStringKeyMap<>(source);
+        underTest = new ComplexStringKeyMap<>(source);
 
         String actual = underTest.get("A:A");
 
@@ -117,7 +117,7 @@ public class MultiMappingComplexStringKeyMapTest {
         source.put("A-A", "AA-value");
         source.put("B", "B-value");
         source.put("C", "C-value");
-        underTest = new MultiMappingComplexStringKeyMap<>(source, "-");
+        underTest = new ComplexStringKeyMap<>(source, "-");
 
         String actual = underTest.get("A-A");
 
@@ -130,7 +130,7 @@ public class MultiMappingComplexStringKeyMapTest {
         source.put("A-A", "AA-value");
         source.put("B", "B-value");
         source.put("C", "C-value");
-        underTest = new MultiMappingComplexStringKeyMap<>("-");
+        underTest = new ComplexStringKeyMap<>("-");
         underTest.putAll(source);
 
         String actual = underTest.get("A-A");
