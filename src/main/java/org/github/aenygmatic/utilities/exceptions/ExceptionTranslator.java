@@ -25,13 +25,13 @@ import java.util.List;
  */
 public class ExceptionTranslator<T> {
 
-    private List<ExceptionRelation<T>> fallback;
+    private List<ExceptionRelation<T>> dictionary;
     private T defaultValue;
 
     public T translate(Exception exception) {
         T translated = defaultValue;
 
-        for (ExceptionRelation<T> relation : fallback) {
+        for (ExceptionRelation<T> relation : dictionary) {
             if (relation.getException().isInstance(exception)) {
                 translated = relation.getRelated();
                 break;
@@ -41,8 +41,8 @@ public class ExceptionTranslator<T> {
         return translated;
     }
 
-    public void setFallback(List<ExceptionRelation<T>> fallback) {
-        this.fallback = fallback;
+    public void setDictionary(List<ExceptionRelation<T>> dictionary) {
+        this.dictionary = dictionary;
     }
 
     public void setDefaultValue(T defaultValue) {

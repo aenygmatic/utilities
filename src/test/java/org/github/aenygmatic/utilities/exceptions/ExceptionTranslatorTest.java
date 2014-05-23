@@ -30,7 +30,7 @@ import org.junit.Test;
  */
 public class ExceptionTranslatorTest {
 
-    private List<ExceptionRelation<String>> fallback;
+    private List<ExceptionRelation<String>> dictionary;
     private Exception exception;
 
     private ExceptionTranslator<String> underTest;
@@ -70,14 +70,14 @@ public class ExceptionTranslatorTest {
 
     private void initializeTestedClass() {
         underTest = new ExceptionTranslator<>();
-        underTest.setFallback(fallback);
+        underTest.setDictionary(dictionary);
         underTest.setDefaultValue("Default");
     }
 
     private void initializeTestData() {
-        fallback = new ArrayList<>();
-        fallback.add(relation(IllegalArgumentException.class, "IllegalArgumentException"));
-        fallback.add(relation(RuntimeException.class, "RuntimeException"));
+        dictionary = new ArrayList<>();
+        dictionary.add(relation(IllegalArgumentException.class, "IllegalArgumentException"));
+        dictionary.add(relation(RuntimeException.class, "RuntimeException"));
     }
 
     private void givenExcetion(Exception ex) {
