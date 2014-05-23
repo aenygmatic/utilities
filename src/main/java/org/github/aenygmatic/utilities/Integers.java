@@ -17,6 +17,11 @@ package org.github.aenygmatic.utilities;
 
 import java.util.Iterator;
 
+/**
+ * Contains utility functions for {@code Integet} based operations.
+ * <p>
+ * @author Balazs Berkes
+ */
 public class Integers {
 
     private Integers() {
