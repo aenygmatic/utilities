@@ -30,11 +30,11 @@ import org.junit.Test;
 public class StringsTest {
 
     @Test
-    public void testThrough() {
+    public void testThroughCharacters() {
         List<Character> expected = Arrays.asList('S', 't', 'r', 'i', 'n', 'g');
         int index = 0;
 
-        for (Character c : Strings.through("String")) {
+        for (Character c : Strings.throughCharacters("String")) {
             assertEquals(expected.get(index), c);
             index++;
         }

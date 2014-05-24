@@ -24,9 +24,6 @@ import java.util.Iterator;
  */
 public class Integers {
 
-    private Integers() {
-    }
-
     /**
      * Provides an {@code Iterable} object to go through a line of {@code Integers}. It's a comfortable form to use in
      * for loops to make it more readable. The following code will iterate from {@code zero} (included) to {@code 100}
@@ -87,10 +84,13 @@ public class Integers {
         return new SteppingIntegerRage(start, end, step);
     }
 
+    private Integers() {
+    }
+
     private static class IntegerRage implements Iterable<Integer>, Iterator<Integer> {
 
-        int start;
-        int end;
+        protected int start;
+        private int end;
 
         private IntegerRage(int start, int end) {
             this.start = start;
@@ -105,11 +105,6 @@ public class Integers {
         @Override
         public Integer next() {
             return start++;
-        }
-
-        @Override
-        public void remove() {
-
         }
 
         @Override

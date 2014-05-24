@@ -29,15 +29,15 @@ public class Strings {
      * <p>
      * ['S', 't', 'r', 'i', 'n', 'g']
      * <pre>
-     *     for(Character c : range("String")) {
-     *         // Do something with the character
-     *     }
+     * for(Character c : throughCharacters("String")) {
+     *     // Do something with the character
+     * }
      * </pre>
      * <p>
      * @param string string to iterate through
      * @return {@code Iterable} object of Characters
      */
-    public static Iterable<Character> through(String string) {
+    public static Iterable<Character> throughCharacters(String string) {
         return new CharacterIterator(string);
     }
 
@@ -46,9 +46,9 @@ public class Strings {
      * <p>
      * ["S", "t", "r", "i", "n", "g"]
      * <pre>
-     *     for(String s : throughElements("String")) {
-     *         // Do something with the string
-     *     }
+     * for(String s : throughElements("String")) {
+     *     // Do something with the string
+     * }
      * </pre>
      * <p>
      * @param string string to iterate through
@@ -56,6 +56,9 @@ public class Strings {
      */
     public static Iterable<String> throughElements(String string) {
         return new StringIterator(string);
+    }
+
+    private Strings() {
     }
 
     private static class CharacterIterator implements Iterable<Character>, Iterator<Character> {
